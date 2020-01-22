@@ -1,0 +1,15 @@
+{
+  "name": "dummyreader",
+  "version": "1.0.0",
+  "description": "npm i yang-js",
+  "main": "app.js",
+  "dependencies": {
+    "yang-js": "^0.22.50"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
