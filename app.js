@@ -1,33 +1,38 @@
 const http = require('http');
 const Yang = require('yang-js');
+// const yangInstance2 = require('./openconfig@0.1.6/iana-if-type.yang');
+// const yangInstance = require('./openconfig@0.1.6/openconfig-interfaces.yang');
 
+// const yangInstance = Yang.parse(`  import openconfig-interfaces {
+//   prefix yang;
+// }`);
 const hostname = '127.0.0.1';
 const port = 3000;
 
-const schema = `
-  container foo {
-    leaf a { type string; }
-    leaf b { type uint8; }
+const yangInstance = Yang.import('openconfig-interfaces');
+
+const model = yangInstance.eval({
+  "openconfig-interfaces:interfaces":{
+    "interface":[
+      {
+      "state":{},
+      "config":{
+        "enabled":"true"
+      },
+      "name":"0",
+      "type":"iana-if-type:Ieee8023adLag"
+      }
+    ]
   }
-`;
-
-const model = Yang.parse(schema).eval({
-    foo: {
-      a: 'apple',
-      b: 10,
-    }
-  });
-
-console.log(model.foo.b);
-console.log(model.foo.a);
-
-
-const server = http.createServer((req, res) => {
-  res.statusCode = 200;
-  res.setHeader('Content-Type', 'text/plain');
-  res.end('Hello World');
 });
 
+console.log(model);
+
+// const server = http.createServer((req, res) => {
+//   res.statusCode = 200;
+//   res.setHeader('Content-Type', 'text/plain');
+//   res.end('Hello World');
+// });
 //server.listen(port, hostname, () => {
 //  console.log(`Server running at http://${hostname}:${port}/`);
 //});
