@@ -3,19 +3,9 @@
   "version": "1.0.0",
   "description": "npm i yang-js",
   "main": "app.js",
-  "dependencies": {
-    "yang-js": "^0.22.50"
-  },
+  "dependencies": {},
   "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
-  },
-
-  "models": {
-
-    "ietf-yang-types": "yang-js",
-    "ietf-inet-types": "yang-js",
-    "iana-if-type": "./openconfig@0.1.6/iana-if-type.yang",
-    "openconfig-interfaces": "./openconfig@0.1.6/openconfig-interfaces.yang"
   }
 }
