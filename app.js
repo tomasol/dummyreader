@@ -1,6 +1,6 @@
 const express = require('express')
 const bodyParser = require('body-parser')
-var syncRequest = require('sync-request')
+const rp = require('request-promise-native');
 
 const app = express()
 app.use(bodyParser.json())
@@ -55,7 +55,7 @@ app.post(readersPrefix + '/openconfig-interfaces:interfaces/interface/config', a
   console.log("req.body:", req.body)
   let path = req.body["path"]
   console.log("req.body.path:", path)
-  let executeRead = function(cmd) {
+  let executeRead = async function(cmd) {
     let cliResponse
     if (req.body["cmd"] != null && typeof req.body["cmd"][cmd] === "string") {
       cliResponse = req.body["cmd"][cmd]
@@ -63,16 +63,16 @@ app.post(readersPrefix + '/openconfig-interfaces:interfaces/interface/config', a
       let executeCliCommandEndpoint = req.body["executeCliCommandEndpoint"]
       console.log("Reading from", executeCliCommandEndpoint)
       let reqJSON = {"cmd": cmd}
-      cliResponse = syncRequest('POST', executeCliCommandEndpoint, {"json":reqJSON}) // TODO make async
-      if (cliResponse.statusCode != 200) {
-        throw "Wrong status code: " +  cliResponse.statusCode
+      var options = {
+        method: 'POST',
+        uri: executeCliCommandEndpoint,
+        body: reqJSON,
+        json: true // Automatically stringifies the body to JSON
       }
-      cliResponse = cliResponse.body.toString('utf-8')
+      cliResponse = await rp(options)
     }
     console.log("Got cli response:", cliResponse)
-    return new Promise(function (fulfill, reject){
-      fulfill(cliResponse)
-    })
+    return cliResponse
   }
   const cli = {"executeRead": executeRead}
   let model = await reader(path, cli)
@@ -83,9 +83,9 @@ app.post(readersPrefix + '/openconfig-interfaces:interfaces/interface/config', a
 app.listen(port, () => console.log(`Example app listening on port ${port}!`))
 
 /*
- curl -v localhost:3000/readers/openconfig-interfaces:interfaces/interface/config -H "Content-Type: application/json" -d \
+curl -v localhost:3000/readers/openconfig-interfaces:interfaces/interface/config -H "Content-Type: application/json" -d \
 
-'{"deviceType":"ubnt", "deviceVersion":"1", "path":"/openconfig-interfaces:interfaces/interface[name='\''4/1'\'']/config", "executeCliCommandEndpoint":"http://foo/bar"}'
+'{"deviceType":"ubnt", "deviceVersion":"1", "path":"/openconfig-interfaces:interfaces/interface[name='\''4/1'\'']/config", "executeCliCommandEndpoint":"http://172.8.0.85:4000/executeCliCommand/secret"}'
 
 '{"deviceType":"ubnt", "deviceVersion":"1", "path":"/openconfig-interfaces:interfaces/interface[name='\''4/1'\'']/config", "cmd":{"show running-config interface 4/1":"foo\nmtu 99\ndescription descr\nshutdown\ninterface 2/2"}}'
 
