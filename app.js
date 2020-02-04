@@ -34,29 +34,28 @@ function parseIfcType(ifcName) {
   return "iana-if-type:Other";
 }
 
-function reader(path, cli, onSuccess) {
+async function reader(path, cli) {
   let pathMatch = pathRegex.exec(path)
   if (pathMatch == null) {
     throw "Cannot parse path"
   }
   let ifcName = pathMatch[1]
   const cmd = "show running-config interface " + ifcName
-  const cliResponse = cli.executeRead(cmd, function(cliResponse) {
-    let model = {"name":ifcName}
-    model["mtu"] = parseValue(mtuRegex, cliResponse, function(match){return parseInt(match[1])}, true)
-    model["description"] = parseValue(descriptionRegex, cliResponse, function(match){return match[1]}, true)
-    model["enabled"] = parseValue(shutdownRegex, cliResponse, function(match) {return match == null})
-    model["type"] = parseValue(typeRegex, cliResponse, function(match) {return parseIfcType(match[1])}, true)
-    onSuccess(model)
-  })
+  cliResponse = await cli.executeRead(cmd)
+  let model = {"name":ifcName}
+  model["mtu"] = parseValue(mtuRegex, cliResponse, function(match){return parseInt(match[1])}, true)
+  model["description"] = parseValue(descriptionRegex, cliResponse, function(match){return match[1]}, true)
+  model["enabled"] = parseValue(shutdownRegex, cliResponse, function(match) {return match == null})
+  model["type"] = parseValue(typeRegex, cliResponse, function(match) {return parseIfcType(match[1])}, true)
+  return model
 }
 
-app.post(readersPrefix + '/openconfig-interfaces:interfaces/interface/config', function(req, res) {
+app.post(readersPrefix + '/openconfig-interfaces:interfaces/interface/config', async (req, res, next) => {
   // parse path
   console.log("req.body:", req.body)
   let path = req.body["path"]
   console.log("req.body.path:", path)
-  let executeRead = function(cmd, onSuccess) {
+  let executeRead = function(cmd) {
     let cliResponse
     if (req.body["cmd"] != null && typeof req.body["cmd"][cmd] === "string") {
       cliResponse = req.body["cmd"][cmd]
@@ -64,19 +63,19 @@ app.post(readersPrefix + '/openconfig-interfaces:interfaces/interface/config', f
       let executeCliCommandEndpoint = req.body["executeCliCommandEndpoint"]
       console.log("Reading from", executeCliCommandEndpoint)
       let reqJSON = {"cmd": cmd}
-      cliResponse = syncRequest('POST', executeCliCommandEndpoint, {"json":reqJSON})
+      cliResponse = syncRequest('POST', executeCliCommandEndpoint, {"json":reqJSON}) // TODO make async
       if (cliResponse.statusCode != 200) {
         throw "Wrong status code: " +  cliResponse.statusCode
       }
       cliResponse = cliResponse.body.toString('utf-8')
     }
     console.log("Got cli response:", cliResponse)
-    onSuccess(cliResponse)
+    return new Promise(function (fulfill, reject){
+      fulfill(cliResponse)
+    })
   }
   const cli = {"executeRead": executeRead}
-  let model;
-  reader(path, cli, function(m) {model = m})
-  // TODO: make async
+  let model = await reader(path, cli)
   console.log("Sending back", model)
   res.send(model)
 })
