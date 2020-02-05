@@ -1,1 +1,5 @@
-npm i yang-js
+```
+npm install
+node app.js
+```
+
