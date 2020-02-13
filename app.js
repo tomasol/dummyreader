@@ -1,13 +1,3 @@
-const express = require('express')
-const bodyParser = require('body-parser')
-const rp = require('request-promise-native');
-
-const app = express()
-app.use(bodyParser.json())
-const port = 3000
-
-const readersPrefix = '/readers'
-
 const pathRegex = /^\/openconfig-interfaces:interfaces\/interface\[name='(.*)'\]\/config$/
 const mtuRegex = /^mtu (\d+)$/m
 const descriptionRegex = /^description '?(.+?)'?$/m
@@ -49,6 +39,18 @@ async function reader(path, cli) {
   model["type"] = parseValue(typeRegex, cliResponse, function(match) {return parseIfcType(match[1])}, true)
   return model
 }
+// -----------------------------------------------------------------------------------------------------------------
+
+
+const express = require('express')
+const bodyParser = require('body-parser')
+const rp = require('request-promise-native');
+
+const app = express()
+app.use(bodyParser.json())
+const port = 3000
+
+const readersPrefix = '/readers'
 
 app.post(readersPrefix + '/openconfig-interfaces:interfaces/interface/config', async (req, res, next) => {
   // parse path
@@ -58,8 +60,10 @@ app.post(readersPrefix + '/openconfig-interfaces:interfaces/interface/config', a
   let executeRead = async function(cmd) {
     let cliResponse
     if (req.body["cmd"] != null && typeof req.body["cmd"][cmd] === "string") {
+      // if command was supplied in parent request, just return it
       cliResponse = req.body["cmd"][cmd]
     } else {
+      // make actual http call to obtain cmd result
       let executeCliCommandEndpoint = req.body["executeCliCommandEndpoint"]
       console.log("Reading from", executeCliCommandEndpoint)
       let reqJSON = {"cmd": cmd}
@@ -87,7 +91,7 @@ curl -v localhost:3000/readers/openconfig-interfaces:interfaces/interface/config
 
 '{"deviceType":"ubnt", "deviceVersion":"1", "path":"/openconfig-interfaces:interfaces/interface[name='\''4/1'\'']/config", "executeCliCommandEndpoint":"http://172.8.0.85:4000/executeCliCommand/secret"}'
 
-'{"deviceType":"ubnt", "deviceVersion":"1", "path":"/openconfig-interfaces:interfaces/interface[name='\''4/1'\'']/config", "cmd":{"show running-config interface 4/1":"foo\nmtu 99\ndescription descr\nshutdown\ninterface 2/2"}}'
+'{"deviceType":"ubnt", "deviceVersion":"1", "path":"/openconfig-interfaces:interfaces/interface[name='\''4/1'\'']/config", "cmd":{"show running-config interface 4/1":"foo\nmtu 99\ndescription descr\nshutdown\ninterface 4/1"}}'
 
 curl -v 172.8.0.85:4000/executeCliCommand/secret -d "{\"cmd\":\"show running-config\"}"
 
